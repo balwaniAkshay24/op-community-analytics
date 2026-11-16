@@ -73,14 +73,17 @@ let blockedUntil = 0;
 
 async function withSlot<T>(fn: () => Promise<T>): Promise<T> {
   if (active >= MAX_CONCURRENT) {
+    // The request that finishes hands its slot straight to us, so `active` stays put.
     await new Promise<void>((resolve) => waiting.push(resolve));
+  } else {
+    active++;
   }
-  active++;
   try {
     return await fn();
   } finally {
-    active--;
-    waiting.shift()?.();
+    const next = waiting.shift();
+    if (next) next();
+    else active--;
   }
 }
 
@@ -124,10 +127,13 @@ export function buildUrl(
   cfg: StatbotConfig,
   path: string,
   query?: Record<string, QueryValue>,
+  scope: "guild" | "global" = "guild",
 ): string {
-  const url = new URL(
-    `${cfg.base}/v1/guilds/${encodeURIComponent(cfg.guildId)}${path}`,
-  );
+  const root =
+    scope === "global"
+      ? `${cfg.base}/v1`
+      : `${cfg.base}/v1/guilds/${encodeURIComponent(cfg.guildId)}`;
+  const url = new URL(`${root}${path}`);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value === undefined) continue;
     if (Array.isArray(value)) {
@@ -234,6 +240,7 @@ export async function statbot<T = unknown>(
   const def = ENDPOINTS[id];
   const required: Record<string, QueryValue> =
     "required" in def ? def.required : {};
+  const scope = "scope" in def ? def.scope : "guild";
   const query = options.query ?? {};
 
   const fixed: Record<string, QueryValue> = { ...required };
@@ -252,7 +259,7 @@ export async function statbot<T = unknown>(
     const sent: Record<string, QueryValue> = { ...fixed };
     for (const k of offered) if (allowed.has(k)) sent[k] = stepped[k];
 
-    const url = buildUrl(cfg, def.path, sent);
+    const url = buildUrl(cfg, def.path, sent, scope);
     if (url === lastUrl) continue; // this step drops nothing we were sending
     lastUrl = url;
 

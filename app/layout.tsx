@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo } from "next/font/google";
+import Link from "next/link";
+import { LinkPending } from "@/components/LinkPending";
 import { NavLinks } from "@/components/NavLinks";
 import "./globals.css";
 
@@ -42,11 +44,14 @@ export default function RootLayout({
         </a>
         <header className="site-header">
           <div className="shell site-header-inner">
-            <p className="site-name">{siteName}</p>
+            <Link className="site-name" href="/">
+              {siteName}
+              <LinkPending />
+            </Link>
             <NavLinks />
           </div>
         </header>
-        <main id="main" className="shell">
+        <main id="main" className="shell" tabIndex={-1}>
           {children}
         </main>
         <footer className="shell site-footer">

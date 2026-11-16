@@ -23,17 +23,17 @@ Open http://localhost:3000, then http://localhost:3000/explorer?token=YOUR_EXPLO
 
 ## Environment variables
 
-| Variable                   | What it's for                                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `STATBOT_API_BASE`         | Statbot API host. Set to `https://api.statbot.net`; confirm in Statbot's #api-support if requests fail. |
-| `STATBOT_API_KEY`          | From the Statbot dashboard: Server Settings > Developers > API Key. Server-side only.                   |
-| `STATBOT_GUILD_ID`         | The Discord server ID. The key only works for this server.                                              |
-| `NEXT_PUBLIC_SITE_NAME`    | Name shown in the header and page titles.                                                               |
-| `SHOW_MEMBER_NAMES`        | `true` shows usernames in leaderboards. Defaults to off because the site is public.                     |
-| `EXPLORER_TOKEN`           | Unlocks `/explorer`. Leave empty to disable it in production.                                           |
-| `STATBOT_INCLUDE_BOTS`     | `true` counts bot accounts too. Default: real members only.                                             |
-| `STATBOT_EXCLUDE_CHANNELS` | Comma-separated channel IDs to leave out of public stats, such as log channels.                         |
-| `REVALIDATE_SECRET`        | Lets you force a refresh: `curl -X POST "https://<site>/api/revalidate?secret=<value>"`.                |
+| Variable                   | What it's for                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `STATBOT_API_BASE`         | Statbot API host. Set to `https://api.statbot.net`; confirm in Statbot's #api-support if requests fail.      |
+| `STATBOT_API_KEY`          | From the Statbot dashboard: Server Settings > Developers > API Key. Server-side only.                        |
+| `STATBOT_GUILD_ID`         | The Discord server ID. The key only works for this server.                                                   |
+| `NEXT_PUBLIC_SITE_NAME`    | Name shown in the header and page titles.                                                                    |
+| `SHOW_MEMBER_NAMES`        | `true` shows usernames in leaderboards. Defaults to off because the site is public.                          |
+| `EXPLORER_TOKEN`           | Unlocks `/explorer`. Leave empty to disable it in production.                                                |
+| `STATBOT_INCLUDE_BOTS`     | `true` counts bot accounts too. Default: real members only.                                                  |
+| `STATBOT_EXCLUDE_CHANNELS` | Comma-separated channel IDs to leave out of public stats, such as log channels.                              |
+| `REVALIDATE_SECRET`        | Lets you force a refresh: `curl -X POST -H "Authorization: Bearer <value>" "https://<site>/api/revalidate"`. |
 
 ## Checking the API in /explorer
 
@@ -50,6 +50,33 @@ Confirmed from the Statbot docs and live responses:
   remembers what worked. `/explorer` lists anything that was dropped.
 - Rate limit is about 10 requests per 10 seconds; `client.ts` pauses when the window is used up.
 
+## API coverage
+
+Checked against docs.statbot.net in November 2026. The API has 23 endpoints; the site
+calls 21 of them, and every path in `lib/statbot/endpoints.ts` is now taken from the docs.
+
+| Docs group | Endpoints                                                                                     | Used on                              |
+| ---------- | --------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Series     | messages, voice, activities, membercounts, statuses, invites, unique members, unique channels | Overview and every section page      |
+| Tops       | activities, message members/channels, voice members/channels, invites, invite members         | Messages, Voice, Invites, Activities |
+| Sums       | messages, voice                                                                               | Overview, Messages, Voice            |
+| Counts     | members with counts                                                                           | `/explorer` only (see below)         |
+| Resources  | channels, invites, activities                                                                 | Naming channels, invite links, games |
+
+Not used:
+
+- `GET /channels/:channel_id` and `GET /invites/:invite_id`: single-item lookups; the lists cover them.
+- `GET /counts/members` returns per-member rows, so it stays off the public pages for now.
+- The `by_*` grouping parameters on the series endpoints (for example messages `by_channel`,
+  voice `by_state`, invites `by_invite`). The docs don't show the value format or the response
+  shape, so try one in `/explorer` before building a chart on it.
+
+Still to confirm in `/explorer` with the live key:
+
+- The unit of the activity counts (the Activities page shows plain numbers until then).
+- The field names in the status series (the Members page maps online, idle, dnd, offline).
+- That the guild key is accepted by `GET /v1/activities`, which is the only path outside the guild.
+
 ## How it fits together
 
 ```
@@ -59,6 +86,8 @@ app/
   voice/              Voice time per day, top voice channels, top members in voice
   members/            Member count, joins and leaves, active members, status
   invites/            Invite joins per day, top invite links, top inviters
+  activities/         Games and apps: activity per day, top activities
+  error.tsx           Shown if a page fails to render
   explorer/           Raw API responses (token protected, never cached)
   api/revalidate/     Force-refresh all cached data
 components/           Charts (Recharts), ranked lists, stat rows, panels
@@ -76,7 +105,7 @@ lib/format.ts         Number, date (IST) and voice-time formatting
 - Each page sets `revalidate = 10800` and each fetch uses the same 3-hour window, tagged `statbot`.
 - Visitors always get a cached page; Vercel refreshes it in the background when it's older than 3 hours.
 - `client.ts` runs at most 2 Statbot requests at a time and retries a 429 after `retry-after`
-  (up to 10 seconds, twice), so building every page at once doesn't trip the limit.
+  (up to 15 seconds, three times), so building every page at once doesn't trip the limit.
 - To change the refresh time, update `REVALIDATE_SECONDS` in `lib/statbot/config.ts` and the
   `revalidate` export in each page (Next.js needs that one as a literal number).
 
@@ -85,6 +114,13 @@ lib/format.ts         Number, date (IST) and voice-time formatting
 `statbot()` never throws. A failed endpoint shows a message in its own panel and the rest of
 the page still renders. A failed refresh replaces the cached page with the error until the next
 refresh, so check `/explorer` if a panel goes red.
+
+### Page-change loader
+
+`components/LinkPending.tsx` sits inside each internal `<Link>` and draws a 2px line at the top
+of the window while that link's page loads. It uses Next's `useLinkStatus`, adds no library,
+and shows nothing when a page is already prefetched. Add `<LinkPending />` inside any new
+internal link to give it the same behaviour.
 
 ### Privacy
 

@@ -120,6 +120,8 @@ export default async function OverviewPage() {
         <Panel
           wide
           title="Messages per day"
+          href="/messages"
+          linkLabel="All message stats"
           error={messages.error}
           empty={
             !messages.value || !messageKey || messages.value.rows.length === 0
@@ -137,6 +139,8 @@ export default async function OverviewPage() {
 
         <Panel
           title="Most active channels"
+          href="/messages"
+          linkLabel="Top 10"
           description={`By messages, last ${DEFAULT_DAYS} days.`}
           error={channelsTop.error}
           empty={!channelsTop.value?.length}
@@ -146,6 +150,8 @@ export default async function OverviewPage() {
 
         <Panel
           title="Active members per day"
+          href="/members"
+          linkLabel="Member growth"
           description="Members who sent a message or joined voice."
           error={activeRes.error}
           empty={!active || !activeKey || active.rows.length === 0}

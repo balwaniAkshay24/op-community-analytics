@@ -7,7 +7,14 @@ import { TrendChart } from "@/components/TrendChart";
 import { read } from "@/lib/result";
 import { statbot } from "@/lib/statbot/client";
 import { getConfig } from "@/lib/statbot/config";
-import { pickKey, sumKey, toRanked, toRows } from "@/lib/statbot/normalize";
+import {
+  pickKey,
+  sumKey,
+  toInviteNameMap,
+  toRanked,
+  toRows,
+  withNames,
+} from "@/lib/statbot/normalize";
 import { DEFAULT_DAYS, rangeParams } from "@/lib/statbot/range";
 
 export const revalidate = 10800;
@@ -17,12 +24,13 @@ export default async function InvitesPage() {
   const { showMemberNames } = getConfig();
   const query = rangeParams(DEFAULT_DAYS);
 
-  const [series, topInvites, topInviters] = await Promise.all([
+  const [series, topInvites, topInviters, inviteList] = await Promise.all([
     statbot("inviteSeries", { query }),
     statbot("topInvites", { query }),
     statbot("topInviteMembers", {
       query: { ...query, full: showMemberNames ? "true" : undefined },
     }),
+    statbot("invites"),
   ]);
 
   const invites = read(series, toRows);
@@ -31,7 +39,12 @@ export default async function InvitesPage() {
     : null;
   const total = invites.value ? sumKey(invites.value, key) : null;
 
-  const linksTop = read(topInvites, (d) => toRanked(d, 10));
+  // Label each link with its Statbot label (e.g. a campaign name) or its invite code.
+  const inviteNames =
+    read(inviteList, toInviteNameMap).value ?? new Map<string, string>();
+  const linksTop = read(topInvites, (d) =>
+    withNames(toRanked(d, 10), inviteNames, ""),
+  );
   const invitersTop = read(topInviters, (d) => toRanked(d, 10));
 
   return (
@@ -59,7 +72,7 @@ export default async function InvitesPage() {
 
         <Panel
           title="Top invite links"
-          description="Campaign and partner links show up here by their invite code."
+          description="Shown by the label set in Statbot, or the invite code if there is none."
           error={linksTop.error}
           empty={!linksTop.value?.length}
         >

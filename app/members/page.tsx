@@ -11,6 +11,7 @@ import {
   lastValue,
   pickKey,
   sumKey,
+  statusName,
   toRows,
 } from "@/lib/statbot/normalize";
 import { DEFAULT_DAYS, rangeParams } from "@/lib/statbot/range";
@@ -49,7 +50,7 @@ export default async function MembersPage() {
   const status = read(statuses, toRows);
   const statusSeries = (status.value?.keys ?? [])
     .slice(0, 3)
-    .map((k) => ({ key: k, name: k }));
+    .map((k) => ({ key: k, name: statusName(k) }));
 
   return (
     <>
@@ -129,7 +130,7 @@ export default async function MembersPage() {
         <Panel
           wide
           title="Members online"
-          description="Members by status. Field names come straight from Statbot until we map them."
+          description="Members by Discord status."
           error={status.error}
           empty={statusSeries.length === 0 || !status.value?.rows.length}
         >

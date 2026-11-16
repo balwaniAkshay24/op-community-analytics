@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { LinkPending } from "./LinkPending";
 
 const LINKS = [
   { href: "/", label: "Overview" },
@@ -9,26 +11,41 @@ const LINKS = [
   { href: "/voice", label: "Voice" },
   { href: "/members", label: "Members" },
   { href: "/invites", label: "Invites" },
+  { href: "/activities", label: "Activities" },
 ];
 
+function isCurrent(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function NavLinks() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
+  const navRef = useRef<HTMLElement>(null);
+
+  // On phones the tabs scroll sideways; keep the current one in view.
+  useEffect(() => {
+    const nav = navRef.current;
+    const current = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !current) return;
+    const left =
+      current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2;
+    nav.scrollTo({ left: Math.max(0, left) });
+  }, [pathname]);
+
   return (
-    <nav className="nav" aria-label="Sections">
-      {LINKS.map((link) => {
-        const current =
-          link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="nav-link"
-            aria-current={current ? "page" : undefined}
-          >
-            {link.label}
-          </Link>
-        );
-      })}
+    <nav ref={navRef} className="nav" aria-label="Sections">
+      {LINKS.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="nav-link"
+          aria-current={isCurrent(pathname, link.href) ? "page" : undefined}
+        >
+          {link.label}
+          <LinkPending />
+        </Link>
+      ))}
     </nav>
   );
 }

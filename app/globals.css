@@ -115,6 +115,8 @@ a {
 }
 
 .site-name {
+  color: inherit;
+  text-decoration: none;
   font-size: var(--step-1);
   font-weight: 700;
   font-stretch: 112%;
@@ -125,8 +127,31 @@ a {
 .nav {
   display: flex;
   gap: 1.5rem;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
+}
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* Phones: the tabs scroll sideways, so fade the right edge to show there are more. */
+@media (max-width: 40rem) {
+  .nav {
+    gap: 1.25rem;
+    padding-right: 2rem;
+    mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2.5rem),
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2.5rem),
+      transparent
+    );
+  }
 }
 
 .nav-link {
@@ -139,6 +164,10 @@ a {
 }
 .nav-link:hover {
   color: var(--ink);
+}
+/* The scrolling tab bar clips anything outside it, so draw the focus ring inside. */
+.nav-link:focus-visible {
+  outline-offset: -2px;
 }
 .nav-link[aria-current="page"] {
   color: var(--ink);
@@ -252,6 +281,43 @@ a {
 }
 .panel-wide {
   grid-column: 1 / -1;
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.panel-link {
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.panel-link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
 
 .panel-title {
@@ -377,4 +443,42 @@ a {
   padding-bottom: 3rem;
   color: var(--muted);
   font-size: var(--step--1);
+}
+
+main:focus {
+  outline: none;
+}
+
+/* Page-change progress line ------------------------------------------------ */
+.route-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: left;
+  transform: scaleX(0);
+  opacity: 0;
+  pointer-events: none;
+  /* Waits 150ms before showing, then creeps towards the right and holds. */
+  animation: route-progress 6s cubic-bezier(0.1, 0.7, 0.2, 1) 150ms forwards;
+}
+
+@keyframes route-progress {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.92);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-progress {
+    animation: none;
+    transform: none;
+    opacity: 0.6;
+  }
 }

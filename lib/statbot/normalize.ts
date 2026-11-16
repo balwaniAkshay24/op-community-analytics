@@ -68,7 +68,8 @@ const WRAPPER_KEYS = [
 
 const isObj = (v: unknown): v is Obj =>
   typeof v === "object" && v !== null && !Array.isArray(v);
-const isIdKey = (k: string) => /id$/i.test(k);
+// "id", "memberId", "channel_id" – but not words that merely end in "id" (paid, valid).
+const isIdKey = (k: string) => /^id$|Id$|_id$|ID$/.test(k);
 const isNum = (v: unknown): v is number =>
   typeof v === "number" && Number.isFinite(v);
 
@@ -239,6 +240,43 @@ export function toNameMap(json: unknown): Map<string, string> {
     if (id && name) map.set(id, name);
   }
   return map;
+}
+
+/**
+ * The invite list → Map of Statbot's invite id to something readable: the custom
+ * label set in Statbot if there is one, otherwise the invite code.
+ */
+export function toInviteNameMap(json: unknown): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const item of findArray(json)) {
+    if (!isObj(item)) continue;
+    const id = findId(item);
+    const label = typeof item.label === "string" ? item.label.trim() : "";
+    const code = typeof item.code === "string" ? item.code.trim() : "";
+    const name =
+      label || (code ? (item.isVanity === 1 ? `${code} (vanity)` : code) : "");
+    if (!id || !name) continue;
+    map.set(id, name);
+    // Top-invite rows may refer to the invite by code instead of Statbot's id.
+    if (code) map.set(code, name);
+  }
+  return map;
+}
+
+const STATUS_NAMES: Record<string, string> = {
+  online: "Online",
+  idle: "Idle",
+  dnd: "Do not disturb",
+  offline: "Offline",
+  count: "Members",
+};
+
+/** Readable legend name for a status-series field. */
+export function statusName(key: string): string {
+  return (
+    STATUS_NAMES[key.toLowerCase()] ??
+    key.charAt(0).toUpperCase() + key.slice(1)
+  );
 }
 
 export function withNames(

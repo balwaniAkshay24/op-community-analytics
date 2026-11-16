@@ -11,6 +11,8 @@ import { DEFAULT_DAYS, rangeParams } from "@/lib/statbot/range";
  * confirm paths, query parameters and field names. Only opens with ?token=EXPLORER_TOKEN.
  */
 export const dynamic = "force-dynamic";
+// A full run waits on Statbot's rate limit, so allow more than the default time.
+export const maxDuration = 60;
 export const metadata: Metadata = {
   title: "API explorer",
   robots: { index: false, follow: false },
@@ -38,7 +40,7 @@ export default async function ExplorerPage({
 
   const withRange = params.range !== "off";
   const only =
-    typeof params.only === "string" && params.only in ENDPOINTS
+    typeof params.only === "string" && Object.hasOwn(ENDPOINTS, params.only)
       ? (params.only as EndpointId)
       : null;
   const ids = only ? [only] : (Object.keys(ENDPOINTS) as EndpointId[]);
@@ -117,7 +119,9 @@ export default async function ExplorerPage({
                 <span>
                   {result.url
                     ? new URL(result.url).pathname + new URL(result.url).search
-                    : def.path}
+                    : "scope" in def && def.scope === "global"
+                      ? `/v1${def.path}`
+                      : `/v1/guilds/:guild_id${def.path}`}
                 </span>
                 <span>Status {result.status ?? "none"}</span>
                 {rl ? (

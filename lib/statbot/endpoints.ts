@@ -1,10 +1,19 @@
 /**
- * Every Statbot endpoint the site uses, relative to /v1/guilds/:guild_id.
+ * Every Statbot endpoint the site uses.
+ *
+ * All paths below were checked against docs.statbot.net (November 2026). The docs
+ * list 23 endpoints; the two not used here are the single-item lookups
+ * /channels/:channel_id and /invites/:invite_id, which the list endpoints cover.
  *
  * `verified: true`  = path copied from docs.statbot.net.
- * `verified: false` = path inferred from the docs' naming pattern. Open /explorer to
- *                     check these; fix the path here if one returns 404.
+ * `verified: false` = path inferred. Open /explorer to check; fix here if it 404s.
  * `range: true`     = endpoint takes the time-range query from range.ts.
+ * `scope: "global"` = path sits under /v1 instead of /v1/guilds/:guild_id.
+ *
+ * Not used yet: the `by_*` grouping parameters on the series endpoints
+ * (messages: by_member, by_channel, by_flag; voice: by_member, by_channel, by_state,
+ * by_flag; activities: by_member, by_activity; invites: by_invite, by_inviter,
+ * by_invitee, by_flag). Try them in /explorer before building on them.
  */
 export type EndpointDef = {
   path: string;
@@ -12,6 +21,7 @@ export type EndpointDef = {
   group: "Series" | "Tops" | "Sums" | "Counts" | "Resources";
   verified: boolean;
   range: boolean;
+  scope?: "guild" | "global";
   /** Query parameters the endpoint always needs, sent on every call. */
   required?: Record<string, string | string[]>;
 };
@@ -39,7 +49,7 @@ export const ENDPOINTS = {
     path: "/activities/series",
     label: "Activity series",
     group: "Series",
-    verified: false,
+    verified: true,
     range: true,
   },
   memberCountSeries: {
@@ -53,14 +63,14 @@ export const ENDPOINTS = {
     path: "/statuses/series",
     label: "Status series",
     group: "Series",
-    verified: false,
+    verified: true,
     range: true,
   },
   inviteSeries: {
     path: "/invites/series",
     label: "Invite series",
     group: "Series",
-    verified: false,
+    verified: true,
     range: true,
   },
   uniqueMemberSeries: {
@@ -75,7 +85,7 @@ export const ENDPOINTS = {
     path: "/counts/channels/series",
     label: "Unique active channels",
     group: "Series",
-    verified: false,
+    verified: true,
     range: true,
     required: ALL_STATS,
   },
@@ -99,21 +109,21 @@ export const ENDPOINTS = {
     path: "/messages/tops/channels",
     label: "Top message channels",
     group: "Tops",
-    verified: false,
+    verified: true,
     range: true,
   },
   topVoiceMembers: {
     path: "/voice/tops/members",
     label: "Top voice members",
     group: "Tops",
-    verified: false,
+    verified: true,
     range: true,
   },
   topVoiceChannels: {
     path: "/voice/tops/channels",
     label: "Top voice channels",
     group: "Tops",
-    verified: false,
+    verified: true,
     range: true,
   },
   topInvites: {
@@ -127,7 +137,7 @@ export const ENDPOINTS = {
     path: "/invites/tops/members",
     label: "Top inviters",
     group: "Tops",
-    verified: false,
+    verified: true,
     range: true,
   },
 
@@ -143,7 +153,7 @@ export const ENDPOINTS = {
     path: "/voice/sums",
     label: "Voice total",
     group: "Sums",
-    verified: false,
+    verified: true,
     range: true,
   },
 
@@ -162,15 +172,23 @@ export const ENDPOINTS = {
     path: "/channels",
     label: "Channels",
     group: "Resources",
-    verified: false,
+    verified: true,
     range: false,
   },
   invites: {
     path: "/invites",
     label: "Invites",
     group: "Resources",
-    verified: false,
+    verified: true,
     range: false,
+  },
+  activities: {
+    path: "/activities",
+    label: "Activities (all of Statbot)",
+    group: "Resources",
+    verified: true,
+    range: false,
+    scope: "global",
   },
 } satisfies Record<string, EndpointDef>;
 
