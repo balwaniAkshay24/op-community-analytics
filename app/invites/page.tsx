@@ -3,18 +3,10 @@ import { MemberLeaderboard } from "@/components/MemberLeaderboard";
 import { PageHeader } from "@/components/PageHeader";
 import { Panel } from "@/components/Panel";
 import { RankedList } from "@/components/RankedList";
-import { TrendChart } from "@/components/TrendChart";
 import { keepLastGoodPage, read } from "@/lib/result";
 import { statbot } from "@/lib/statbot/client";
 import { getConfig } from "@/lib/statbot/config";
-import {
-  pickKey,
-  sumKey,
-  toInviteNameMap,
-  toRanked,
-  toRows,
-  withNames,
-} from "@/lib/statbot/normalize";
+import { toInviteNameMap, toRanked, withNames } from "@/lib/statbot/normalize";
 import { DEFAULT_DAYS, rangeParams } from "@/lib/statbot/range";
 
 // Rebuilt hourly from the shared data cache, which only calls Statbot every 3 hours
@@ -27,21 +19,17 @@ export default async function InvitesPage() {
   const { showMemberNames } = getConfig();
   const query = rangeParams(DEFAULT_DAYS);
 
-  const [series, topInvites, topInviters, inviteList] = await Promise.all([
-    statbot("inviteSeries", { query }),
+  // No per-day chart: Statbot documents GET /invites/series, but its server answers
+  // "Route ... not found" (checked November 2026). Add it back if that changes;
+  // /explorer still calls it, so a 200 there means it's live.
+  const [topInvites, topInviters, inviteList] = await Promise.all([
     statbot("topInvites", { query }),
     statbot("topInviteMembers", {
       query: { ...query, full: showMemberNames ? "true" : undefined },
     }),
     statbot("invites"),
   ]);
-  keepLastGoodPage([series, topInvites, topInviters, inviteList]);
-
-  const invites = read(series, toRows);
-  const key = invites.value
-    ? pickKey(invites.value, ["count", "uses", "joins", "value"])
-    : null;
-  const total = invites.value ? sumKey(invites.value, key) : null;
+  keepLastGoodPage([topInvites, topInviters, inviteList]);
 
   // Label each link with its Statbot label (e.g. a campaign name) or its invite code.
   const inviteNames =
@@ -59,22 +47,6 @@ export default async function InvitesPage() {
       />
       <div className="grid">
         <Panel
-          wide
-          title="Joins through invites per day"
-          error={invites.error}
-          empty={!key || !invites.value?.rows.length}
-        >
-          {invites.value && key ? (
-            <TrendChart
-              data={invites.value.rows}
-              series={[{ key, name: "Invite joins" }]}
-              height={280}
-              summary="Joins through invite links per day"
-            />
-          ) : null}
-        </Panel>
-
-        <Panel
           title="Top invite links"
           description="Shown by the label set in Statbot, or the invite code if there is none."
           error={linksTop.error}
@@ -87,7 +59,7 @@ export default async function InvitesPage() {
           title="Top inviters"
           items={invitersTop.value}
           error={invitersTop.error}
-          total={total}
+          total={null}
           showNames={showMemberNames}
           unit="invite joins"
         />

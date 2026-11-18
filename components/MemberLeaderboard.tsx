@@ -1,4 +1,4 @@
-import { fmtPercent, type ValueFormat } from "@/lib/format";
+import { fmtPercent, fmtValue, type ValueFormat } from "@/lib/format";
 import type { Ranked } from "@/lib/statbot/normalize";
 import { Panel } from "./Panel";
 import { RankedList } from "./RankedList";
@@ -43,7 +43,9 @@ export function MemberLeaderboard({
     );
   }
 
-  const topSum = items?.reduce((sum, i) => sum + i.value, 0) ?? null;
+  const topSum = items?.length
+    ? items.reduce((sum, i) => sum + i.value, 0)
+    : null;
   // Clamped: the two figures come from different endpoints and can disagree slightly.
   const share = topSum !== null && total ? Math.min(topSum / total, 1) : null;
 
@@ -56,13 +58,26 @@ export function MemberLeaderboard({
           : "Member names are hidden on this public site."
       }
       error={error}
-      empty={share === null}
+      empty={share === null && !topSum}
       emptyText="Not enough data to work this out yet."
     >
-      <p className="stat-value">{share !== null ? fmtPercent(share) : null}</p>
-      <p className="panel-description">
-        of all {unit} came from the {items?.length ?? 0} most active members.
-      </p>
+      {share !== null ? (
+        <>
+          <p className="stat-value">{fmtPercent(share)}</p>
+          <p className="panel-description">
+            of all {unit} came from the {items?.length ?? 0} most active
+            members.
+          </p>
+        </>
+      ) : (
+        // No overall total to compare against (e.g. invites), so give the amount instead.
+        <>
+          <p className="stat-value">{fmtValue(topSum ?? 0, format)}</p>
+          <p className="panel-description">
+            {unit} came from the {items?.length ?? 0} most active members.
+          </p>
+        </>
+      )}
     </Panel>
   );
 }

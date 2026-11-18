@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { Panel } from "@/components/Panel";
 import { RankedList } from "@/components/RankedList";
 import { StatRow } from "@/components/StatRow";
 import { TrendChart } from "@/components/TrendChart";
+import { FEATURES } from "@/lib/features";
 import { keepLastGoodPage, read } from "@/lib/result";
 import { statbot } from "@/lib/statbot/client";
 import {
@@ -29,6 +31,9 @@ export const metadata: Metadata = { title: "Activities" };
  * voice), pass format="voice" to the chart and list below.
  */
 export default async function ActivitiesPage() {
+  // Hidden for now (lib/features.ts). Checked first so a hidden page costs no Statbot calls.
+  if (!FEATURES.activities) notFound();
+
   const query = rangeParams(DEFAULT_DAYS);
 
   const [series, top, catalogue] = await Promise.all([

@@ -71,6 +71,13 @@ Not used:
   voice `by_state`, invites `by_invite`). The docs don't show the value format or the response
   shape, so try one in `/explorer` before building a chart on it.
 
+Documented but not live: `GET /invites/series` returns 404 "Route ... not found" from
+Statbot's server, so the Invites page has no per-day chart. It stays in `/explorer`, so a 200
+there means Statbot has switched it on.
+
+Hidden sections: Activities is built but switched off in `lib/features.ts` (no nav link, the
+page returns 404 and makes no Statbot calls). Set `activities: true` to show it.
+
 Still to confirm in `/explorer` with the live key:
 
 - The unit of the activity counts (the Activities page shows plain numbers until then).
@@ -85,8 +92,8 @@ app/
   messages/           Messages per day, top channels, top members, active channels
   voice/              Voice time per day, top voice channels, top members in voice
   members/            Member count, joins and leaves, active members, status
-  invites/            Invite joins per day, top invite links, top inviters
-  activities/         Games and apps: activity per day, top activities
+  invites/            Top invite links, top inviters
+  activities/         Games and apps (hidden for now: turn on in lib/features.ts)
   error.tsx           Shown if a page fails to render
   explorer/           Raw API responses (token protected, never cached)
   api/revalidate/     Force-refresh all cached data

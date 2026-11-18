@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { FEATURES } from "@/lib/features";
 import { LinkPending } from "./LinkPending";
 
 const LINKS = [
@@ -11,7 +12,9 @@ const LINKS = [
   { href: "/voice", label: "Voice" },
   { href: "/members", label: "Members" },
   { href: "/invites", label: "Invites" },
-  { href: "/activities", label: "Activities" },
+  ...(FEATURES.activities
+    ? [{ href: "/activities", label: "Activities" }]
+    : []),
 ];
 
 function isCurrent(pathname: string, href: string): boolean {

@@ -66,11 +66,13 @@ export const ENDPOINTS = {
     verified: true,
     range: true,
   },
+  // In the docs, but Statbot's server returns 404 "Route ... not found" (Nov 2026).
+  // Not used on any page; kept so /explorer shows when it starts working.
   inviteSeries: {
     path: "/invites/series",
-    label: "Invite series",
+    label: "Invite series (not live at Statbot)",
     group: "Series",
-    verified: true,
+    verified: false,
     range: true,
   },
   uniqueMemberSeries: {
