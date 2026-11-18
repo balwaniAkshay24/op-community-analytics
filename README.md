@@ -104,10 +104,22 @@ lib/format.ts         Number, date (IST) and voice-time formatting
 
 - Each page sets `revalidate = 10800` and each fetch uses the same 3-hour window, tagged `statbot`.
 - Visitors always get a cached page; Vercel refreshes it in the background when it's older than 3 hours.
-- `client.ts` runs at most 2 Statbot requests at a time and retries a 429 after `retry-after`
-  (up to 15 seconds, three times), so building every page at once doesn't trip the limit.
-- To change the refresh time, update `REVALIDATE_SECONDS` in `lib/statbot/config.ts` and the
-  `revalidate` export in each page (Next.js needs that one as a literal number).
+- **Rate limits and caching** (all in `lib/statbot/client.ts`):
+  - Statbot doesn't publish its limit. It reports it on every response in
+    `x-ratelimit-limit`, `x-ratelimit-remaining` and `x-ratelimit-reset` (seconds), and sends
+    `retry-after` (seconds) once it's hit. To see the current cap, open
+    `/explorer?token=<EXPLORER_TOKEN>&only=channels&range=off` and read the "Rate limit" line.
+  - Every response is cached for 3 hours in Vercel's data cache, one entry per endpoint and
+    parameters, shared by all pages. A full refresh is about 21 Statbot calls every 3 hours.
+  - When an entry goes stale, visitors get the stale copy at once and a fresh one is
+    fetched in the background. If that fetch fails, nothing is stored and the old copy stays.
+  - Pages rebuild hourly from that cache (no Statbot calls). If a rebuild still meets a rate
+    limit or outage, the page throws and Vercel keeps serving the previous good version.
+  - Requests slow down before the limit (when 1 is left in the window they wait for the
+    reset), wait out `retry-after` on a 429, and give up after 40 seconds (2 minutes during
+    `next build`). At most 2 run at once per server instance.
+  - `/api/revalidate` drops the whole cache, so the next visits call Statbot fresh with no
+    stale copy to fall back on. Use it sparingly.
 
 ### Errors
 

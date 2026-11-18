@@ -6,7 +6,7 @@ import { RankedList } from "@/components/RankedList";
 import { StatRow } from "@/components/StatRow";
 import { TrendChart } from "@/components/TrendChart";
 import { fmtVoice } from "@/lib/format";
-import { read } from "@/lib/result";
+import { keepLastGoodPage, read } from "@/lib/result";
 import { statbot } from "@/lib/statbot/client";
 import { getConfig } from "@/lib/statbot/config";
 import {
@@ -20,7 +20,10 @@ import {
 } from "@/lib/statbot/normalize";
 import { DEFAULT_DAYS, rangeParams } from "@/lib/statbot/range";
 
-export const revalidate = 10800;
+// Rebuilt hourly from the shared data cache, which only calls Statbot every 3 hours
+// (see cachedCall in lib/statbot/client.ts). So this costs no extra Statbot requests.
+export const revalidate = 3600;
+export const maxDuration = 60;
 export const metadata: Metadata = { title: "Voice" };
 
 export default async function VoicePage() {
@@ -36,6 +39,7 @@ export default async function VoicePage() {
     }),
     statbot("channels"),
   ]);
+  keepLastGoodPage([series, sums, topChannels, topMembers, channels]);
 
   const voice = read(series, toRows);
   const key = voice.value

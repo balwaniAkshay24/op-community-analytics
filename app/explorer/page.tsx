@@ -67,7 +67,7 @@ export default async function ExplorerPage({
     <>
       <PageHeader
         title="API explorer"
-        description={`Live responses from Statbot, not cached. A full run takes about 30 seconds because of Statbot’s rate limit. ${
+        description={`Live responses from Statbot, not cached. Each call goes through the same rate-limit handling as the site, so a full run can take a while. ${
           withRange
             ? `Range and filter parameters sent: ${describe(query)}`
             : "No range or filter parameters sent."

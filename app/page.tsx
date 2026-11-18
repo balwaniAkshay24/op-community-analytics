@@ -3,7 +3,7 @@ import { RankedList } from "@/components/RankedList";
 import { StatRow, type Stat } from "@/components/StatRow";
 import { TrendChart } from "@/components/TrendChart";
 import { fmtNumber, fmtSigned, fmtVoice } from "@/lib/format";
-import { read } from "@/lib/result";
+import { keepLastGoodPage, read } from "@/lib/result";
 import { statbot } from "@/lib/statbot/client";
 import {
   firstValue,
@@ -18,7 +18,10 @@ import {
 } from "@/lib/statbot/normalize";
 import { DEFAULT_DAYS, rangeParams } from "@/lib/statbot/range";
 
-export const revalidate = 10800; // 3 hours, matches REVALIDATE_SECONDS
+// Rebuilt hourly from the shared data cache, which only calls Statbot every 3 hours
+// (see cachedCall in lib/statbot/client.ts). So this costs no extra Statbot requests.
+export const revalidate = 3600;
+export const maxDuration = 60;
 
 export default async function OverviewPage() {
   const query = rangeParams(DEFAULT_DAYS);
@@ -39,6 +42,15 @@ export default async function OverviewPage() {
     statbot("uniqueMemberSeries", { query }),
     statbot("topMessageChannels", { query }),
     statbot("channels"),
+  ]);
+  keepLastGoodPage([
+    messageSeries,
+    messageSums,
+    voiceSums,
+    memberCounts,
+    activeMembers,
+    topChannels,
+    channels,
   ]);
 
   const messages = read(messageSeries, toRows);
